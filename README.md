@@ -34,7 +34,7 @@ reference signals are sent through a serial interface. The microcontroller sends
 | Time out      | T      | No references are received from the PC for more than 5 seconds so both motors velocity are set to zero |
 | Safe mode 	| H      | Motors are stopped immediately and new reference signals are ignored until the microcontroller receives the enable message from the PC |
 
-##### Control mode
+##### B.1 Control mode
 - The firmware must support receiving references at least at 10 Hz frequency (**HLREF**)
 - The control system must never generate PWM signals outside of the specifications of the motor and its propeller
   - If any reference value is given outside the specifications, the system should saturate it to the minimum/maximum allowed value
@@ -46,13 +46,13 @@ reference signals are sent through a serial interface. The microcontroller sends
     - If the above conditions are not met, the new values are not applied, and the firmware sends a negative ack message
     - Otherwise, the new values are stored, the PWM is refreshed to comply with the new saturation values, and a positive ack is sent
 
-##### Timout mode
+##### B.2 Timout mode
 - If no references are received from the PC for more than 5 seconds, the firmware should enter a **timeout mode**:
   - Both motors velocity should be set to zero
   - **Led D4** should blink to signal timeout
   - When a new reference is read, then the led D4 should stop blinking and commands should be given again to the motor
 
-##### Safe mode
+##### B.3 Safe mode
 - If button S5 is pressed, the firmware should enter a **safe mode**:
   - Motors are stopped immediately and reference signals are ignored until the microcontroller receives an enable message (**HLENA**)
   - After exiting safe mode, the motors should be set to zero. Motors should move only after receiving a new reference
@@ -60,12 +60,16 @@ reference signals are sent through a serial interface. The microcontroller sends
 
 
 ##### C. Display  
+
+- The firmware should write on the LCD different information based on the current modality:
+  - *First modality*:
+
 | Row        	| Information 		| Explanation  								| Example		|
 | :-----------: |:---------------------:| :---------------------------------------------------------------------|:---------------------:|
 | First    	| **STA: x TEM: y** 	| *x* = H/T/C (halt/timeout/controlled), and *y* is the temperature 	| STA: C TEM: 22.3 	|
 | Second      	| **RPM: n1,n2**     	| *n1* and *n2* are the applied RPM 					| RPM: -1000,-2000	|
 
-  - If the button S6 is pressed, the LCD should change into *second modality*
+  - If the button S6 is pressed, the LCD should change into *second modality*:
 
 | Row        	| Information 			 | Explanetion  								| Example		|
 | :-----------: |:------------------------------:| :-------------------------------------------------------			|:-----------------------------:|
@@ -76,22 +80,6 @@ reference signals are sent through a serial interface. The microcontroller sends
 - The firmware must acquire the temperature sensor at 10 Hz frequency and average the last 10 readings. The averaged value is sent to the PC at 1 Hz frequency with the **MCTEM** message
 - The firmware must send the feedback message **MCFBK** at 5 Hz frequency
 - The firmware must send a feedback message **MACK** as a response to the message received
-
-### How to use it
-
-### Messages from the PC
-| Message        			   | First parameter 	   	   	| Second parameter       		| Third parameter	|
-| :---------------------------------------:|:---------------------:	   	| :---------------------:		|:---------------------:|
-| <code> <b> $HLREF,n1,n2\* </b> </code>   | To send the reference values  	| *n1* is the RPM for the left motor 	| *n2* is the RPM for the right motor |
-| <code> <b> $HLSAT,min,max* </b> </code>  | To change the saturation values 	| *min* is the minimum RPMs allowed 	| *max* is the maximum RPMs allowed|
-|  <code> <b> $HLENA* </b> </code> 	   | To exit safe mode 			| 					| 					|
-
-### Feedback to the PC
-| Message        			   	| First parameter 	   	   	| Second parameter       		| Third parameter	| Fourth parameter 
-| :---------------------------------------:	|:---------------------:	   	| :---------------------:		|:---------------------:|:---------------------:|
-| <code> <b> $MCFBK,n1,n2,state* </b> </code>   | Feedback to HLREF message  | *n1* is the applied reference signal for left motor| *n2* is the applied reference signal for right motor  | *state* is 2 if the microcontroller is in safe mode, 1 if it is in timeout mode, 0 otherwise |
-| <code> <b> $MCTEM,temp* </b> </code>  	| Feedback to know the temperature of the board | *min* is the minimum RPMs allowed | *max* is the maximum RPMs allowed|	|
-| <code> <b> $MCACK,msg\_type,value* </b> </code>| Acknowledgment feedback| *msg_type* is the command (e.g. REF, ENA, SAT)| *value* is 1 if the message was applied and 0 otherwise|	|
 
 
 ## Getting Started
@@ -108,14 +96,62 @@ reference signals are sent through a serial interface. The microcontroller sends
 
 ### Set up
 
-1) Check the 
+1. Check that the board has all the jumpers and switches in the same position as the image below. In particular pay attention to the ones highlighted with a yellow rectangle around.
+
 <p align="center">
   <img src="Images/dsPICDEM2.jpg" width="500">
 </p>
 
+2. Attach all the cables as depicted in the following image:
+
 <p align="center">
   <img src="Images/Connections.jpg" width="900">
 </p>
+
+## How to run the project
+
+1.  Clone the repository in your computer through the command:
+
+    ```bash
+    git clone https://github.com/cesca95/AutonomousCatamaran.git
+    ```
+2. Create a new project in **MPBLAB X IDE** and add the files contained in **code** folder into the **src** folder of your new project
+4. Upload the code on your board
+3. Run the executable file *hterm.exe*. 
+
+<p align="center">
+  <img src="Images/hterm.jpg" width="900">
+</p>
+
+  - Change the UART baudrate from 11500 bps to **9600** bps
+  - Click on **Connect** botton
+  - You are going to receive three different type of feedback messages from the board
+    - $MCFBK,n1,n2,state*
+    - $MCTEM,temp*
+    - $MCACK,msg_type,value*
+
+4. To control you catamaran you can use three different type of messages: 
+  - $HLREF,n1,n2*
+  - $HLSAT,min,max*
+  - $HLENA*
+
+5. To simulate **safe mode** you have to press button **S5** on the board
+
+### Messages from the PC to the board
+| Message        			   | First parameter 	   	   	| Second parameter       		| Third parameter	|
+| :---------------------------------------:|:---------------------:	   	| :---------------------:		|:---------------------:|
+| <code> <b> $HLREF,n1,n2* </b> </code>   | To send the reference values  	| *n1* is the RPM for the left motor 	| *n2* is the RPM for the right motor |
+| <code> <b> $HLSAT,min,max* </b> </code>  | To change the saturation values 	| *min* is the minimum RPMs allowed 	| *max* is the maximum RPMs allowed|
+|  <code> <b> $HLENA* </b> </code> 	   | To exit safe mode 			| 					| 					|
+
+### Feedback from the board to the PC
+| Message        			   	| First parameter 	   	   	| Second parameter       		| Third parameter	| Fourth parameter 
+| :---------------------------------------:	|:---------------------:	   	| :---------------------:		|:---------------------:|:---------------------:|
+| <code> <b> $MCFBK,n1,n2,state* </b> </code>   | Feedback to HLREF message  | *n1* is the applied reference signal for left motor| *n2* is the applied reference signal for right motor  | *state* is 2 if the microcontroller is in safe mode, 1 if it is in timeout mode, 0 otherwise |
+| <code> <b> $MCTEM,temp* </b> </code>  	| Feedback to know the temperature of the board | *min* is the minimum RPMs allowed | *max* is the maximum RPMs allowed|	|
+| <code> <b> $MCACK,msg\_type,value* </b> </code>| Acknowledgment feedback| *msg_type* is the command (e.g. REF, ENA, SAT)| *value* is 1 if the message was applied and 0 otherwise|	|
+
+
 
 
 ## Authors
