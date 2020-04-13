@@ -145,7 +145,7 @@ reference signals are sent through a serial interface. The microcontroller sends
 3. Check that the project that you want to upload on the board is in bold, otherwise:
    - Right click of your mouse on the project
    - Click on: *Set as main project*
-4. Upload the code on your board via upload icon ![](/images/Upload_icon.PNG)
+4. Upload the code on your board via upload icon   ![](/images/Upload_icon.PNG)
 5. Run the executable file *hterm.exe* 
 
 <p align="center">
@@ -187,7 +187,9 @@ reference signals are sent through a serial interface. The microcontroller sends
 | <code> <b> $MCACK,msg\_type,value* </b> </code>| Acknowledgment feedback| *msg_type* is the command (e.g. REF, ENA, SAT)| *value* is 1 if the message was applied and 0 otherwise|	|
 
 
+## Additional material
 
+For more information about the board consult the materials in the folder **docs** in particular [dsPIC_reference_manual.pdf](https://github.com/cesca95/AutonomousCatamaran/blob/master/docs/dsPIC_reference_manual.pdf) and [dspic30f4011.pdf](https://github.com/cesca95/AutonomousCatamaran/blob/master/docs/dspic30f4011.pdf)
 
 ## Authors
 
