@@ -15,7 +15,7 @@ reference signals are sent through a serial interface. The microcontroller sends
 - Each motor can run from -10000 to +10000 RPMs
 - The RPMs are controlled through a PWM signal
   - The frequency must be 1 kHz
-  - 50% duty cycle corresponds to 0 RPM, 0% corresponds to -10000 RPM and 100% corresponds to 10000 RPMs
+  - 0% corresponds to -10000 RPMs, 50% duty cycle corresponds to 0 RPM, and 100% corresponds to 10000 RPMs
 - The propeller installed on the shaft of each motor is rated for maximum RPMs of +-8000. Running the motor above +-8000 RPMs might damage the propeller and must be avoided
 
 ### Software requirements
@@ -29,7 +29,7 @@ reference signals are sent through a serial interface. The microcontroller sends
 ##### C. Different modes for the firmware
 
 | Mode        	| Symbol | Effect  |
-| :-----------: |:------:| :------|
+| :-----------: |:------:| :------:|
 | Controlled    | C 	 | Motors velocity are set equal to *n1* and *n2* for left motor and right one respectively |
 | Time out      | T      | No references are received from the PC for more than 5 seconds so both motors velocity are set to zero |
 | Safe mode 	| H      | Motors are stopped immediately and new reference signals are ignored until the microcontroller receives the enable message from the PC |
@@ -65,21 +65,24 @@ reference signals are sent through a serial interface. The microcontroller sends
   - *First modality*:
 
 | Row        	| Information 		| Explanation  								| 
-| :-----------: |:---------------------:| :---------------------------------------------------------------------|
+| :-----------: |:---------------------:| :---------------------------------------------------------------------:|
 | First    	| **STA: x TEM: y** 	| *x* = H/T/C (halt/timeout/controlled), and *y* is the temperature 	| 
 | Second      	| **RPM: n1,n2**     	| *n1* and *n2* are the applied RPM 					| 
 
-![LCD modality 1](/images/LCD_mod1.jpg)
-
+<p align="center">
+  <img src="images/LCD_mod1.jpg" width="400">
+</p>
 
   - If the button S6 is pressed, the LCD should change into *second modality*:
 
 | Row        	| Information 			 | Explanation  								| 
-| :-----------: |:------------------------------:| :-------------------------------------------------------			|
+| :-----------: |:------------------------------:| :-------------------------------------------------------:			|
 | First    	| **SAT: x/y**			 | *x* and *y* are the minimum and maximum current saturation values set	| 
 | Second      	| **RPM: PDC1,PDC2**    	 | *PDC1* and *PDC2* are the values of the duty cycle PWM registers		| 
 
-![LCD modality 2](/images/LCD_mod2.jpg)
+<p align="center">
+  <img src="images/LCD_mod2.jpg" width="400">
+</p>
 
 ##### D. Feedback to the PC
 - The firmware must acquire the temperature sensor at 10 Hz frequency and average the last 10 readings. The averaged value is sent to the PC at 1 Hz frequency with the **MCTEM** message
@@ -107,21 +110,28 @@ reference signals are sent through a serial interface. The microcontroller sends
   <img src="images/dsPICDEM2.jpg" width="500">
 </p>
 
-2. Attach all the cables as depicted in the following image:
+2. Attach all the cables to the board as depicted in the following image. <br>
+
+**REMARK:** In case of **PICK Kit 4** pay attention to connect the first pin on the right of **ICD-2** to the hole with the down arrow
+
 
 <p align="center">
   <img src="images/Connections.jpg" width="900">
 </p>
 
-3. Attach the motors in **H8** as follow:
 
-| Motor        	| PWM pin 			|
-| :-----------: |:-----------------------------:| 
-| Left    	| RE1		 		| 
-| Right      	| RE3    			| 
+3. Attach the 2 USB ends with the USB ports of your PC and battery charger to the power outlet 
 
-**NOTE:** For more detailed information about the connections check [dsPICDEM2_drawings.pdf](https://github.com/cesca95/AutonomousCatamaran/blob/master/docs/dsPICDEM2_drawings.pdf) file
+4. Attach the motors to **H8** as follow: 
 
+      | Motor        	| PWM pin 			|
+      | :-----------: |:-----------------------------:| 
+      | Left    	| RE1		 		| 
+      | Right      	| RE3    			| 
+
+
+
+**NOTE:** For more information about the connections check [dsPICDEM2_drawings.pdf](https://github.com/cesca95/AutonomousCatamaran/blob/master/docs/dsPICDEM2_drawings.pdf) file
 
 
 ## How to run the project
@@ -136,7 +146,7 @@ reference signals are sent through a serial interface. The microcontroller sends
 3. Run the executable file *hterm.exe* 
 
 <p align="center">
-  <img src="images/hterm.jpg" width="900">
+  <img src="images/hterm.PNG" width="900">
 </p>
 
   - Change the UART baudrate from **115200** bps to **9600** bps
