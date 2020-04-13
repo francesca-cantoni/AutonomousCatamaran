@@ -96,8 +96,8 @@ reference signals are sent through a serial interface. The microcontroller sends
 
 ### Software Prerequisite
 
-- **MPBLAB X IDE** for programming the board <br/>
-  *If you don't already have it on your PC you can download it [here](https://www.microchip.com/mplab/mplab-x-ide) for free.*
+- **MPBLAB X IDE** 	*If you don't already have it on your PC you can download it [here](https://www.microchip.com/mplab/mplab-x-ide) for free*
+- **MPBLAB XC16 Compiler** 	*If you don't already have it on your PC you can download it [here](https://www.microchip.com/mplab/compilers) for free*
 
 ### Set up
 
