@@ -112,7 +112,7 @@ reference signals are sent through a serial interface. The microcontroller sends
 
 2. Attach all the cables to the board as depicted in the following image. <br>
 
-**REMARK:** In case of **PICK Kit 4** pay attention to connect the first pin on the right of **ICD-2** to the hole with the down arrow
+**REMARK:** In case of **PICK Kit 4** pay attention to connect the first pin on the right of **ICD-2** to the hole with the down arrow of the PICK
 
 
 <p align="center">
@@ -122,7 +122,7 @@ reference signals are sent through a serial interface. The microcontroller sends
 
 3. Attach the 2 USB ends with the USB ports of your PC and battery charger to the power outlet 
 
-4. Attach the motors to **H8** as follow: 
+4. Attach the motors to **H8** as follows: 
 
       | Motor        	| PWM pin 			|
       | :-----------: |:-----------------------------:| 
@@ -142,8 +142,11 @@ reference signals are sent through a serial interface. The microcontroller sends
     git clone https://github.com/cesca95/AutonomousCatamaran.git
     ```
 2. Create a new project in **MPBLAB X IDE** and add the files contained in **code** folder into the **src** folder of your new project
-4. Upload the code on your board
-3. Run the executable file *hterm.exe* 
+3. Check that the project that you want to upload on the board is in bold, otherwise:
+   - Right click of your mouse on the project
+   - Click on: *Set as main project*
+4. Upload the code on your board via upload icon ![](/images/Upload_icon.PNG)
+5. Run the executable file *hterm.exe* 
 
 <p align="center">
   <img src="images/hterm.PNG" width="900">
@@ -156,12 +159,12 @@ reference signals are sent through a serial interface. The microcontroller sends
     - $MCTEM,temp*
     - $MCACK,msg_type,value*
 
-4. To control you catamaran you can use three different type of messages: 
+6. To control you catamaran you can use three different type of messages: 
   - $HLREF,n1,n2*
   - $HLSAT,min,max*
   - $HLENA*
 
-5. To simulate **safe mode** you have to press button **S5** of the board
+7. To simulate **safe mode** you have to press button **S5** of the board
 
 <p align="center">
   <img src="images/Example_hterm.PNG" width="900">
