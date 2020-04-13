@@ -153,8 +153,9 @@ reference signals are sent through a serial interface. The microcontroller sends
 
 5. To simulate **safe mode** you have to press button **S5** of the board
 
-![Example hterm](/images/Example_hterm.PNG) 
-
+<p align="center">
+  <img src="images/Example_hterm.PNG" width="900">
+</p>
 
 
 ### More information about messages
