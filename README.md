@@ -6,14 +6,14 @@ The aim of this project is to implement a basic control system for an autonomous
   <img src="images/Overview.png" width="700">
 </p>
 
-A microcontroller board is connected to two outboard motors. Each outboard motor is composed by a DC motor and a propeller installed at the end of its shaft. Together, the two outboard motors allow the catamaran to move and rotate in the water. The microcontroller receives desired reference values for the rotation speed of the motors from a control PC, in terms of motor RPMs (rounds per minute). These
-reference signals are sent through a serial interface. The microcontroller sends a feedback messages back to the control PC to report a few status information.
+A microcontroller board is connected to two outboard motors. Each outboard motor is composed of a DC motor and a propeller installed at the end of its shaft. Together, the two outboard motors allow the catamaran to move and rotate in the water. The microcontroller receives desired reference values for the rotation speed of the motors from a control PC, in terms of motor RPMs (rounds per minute). These
+reference signals are sent through a serial interface. The microcontroller sends feedback messages back to the control PC to report a few status information.
 
 ## About the project 
 ### Hardware specifications
 
 - Each motor can run from -10000 to +10000 RPMs
-- The RPM are controlled through a PWM signal
+- The RPMs are controlled through a PWM signal
   - The frequency must be 1 kHz
   - 50% duty cycle corresponds to 0 RPM, 0% corresponds to -10000 RPM and 100% corresponds to 10000 RPMs
 - The propeller installed on the shaft of each motor is rated for maximum RPMs of +-8000. Running the motor above +-8000 RPMs might damage the propeller and must be avoided
@@ -30,7 +30,7 @@ reference signals are sent through a serial interface. The microcontroller sends
 
 | Mode        	| Symbol | Effect  |
 | :-----------: |:------:| :------|
-| Controlled    | C 	 | Motors velocity are set equal to *n1* and *n2* for left motor and right one respectivelly |
+| Controlled    | C 	 | Motors velocity are set equal to *n1* and *n2* for left motor and right one respectively |
 | Time out      | T      | No references are received from the PC for more than 5 seconds so both motors velocity are set to zero |
 | Safe mode 	| H      | Motors are stopped immediately and new reference signals are ignored until the microcontroller receives the enable message from the PC |
 
@@ -46,7 +46,7 @@ reference signals are sent through a serial interface. The microcontroller sends
     - If the above conditions are not met, the new values are not applied, and the firmware sends a negative ack message
     - Otherwise, the new values are stored, the PWM is refreshed to comply with the new saturation values, and a positive ack is sent
 
-###### C.2 Timout mode
+###### C.2 Timeout mode
 - If no references are received from the PC for more than 5 seconds, the firmware should enter a **timeout mode**:
   - Both motors velocity should be set to zero
   - **Led D4** should blink to signal timeout
@@ -64,17 +64,22 @@ reference signals are sent through a serial interface. The microcontroller sends
 - The firmware should write on the LCD different information based on the current modality:
   - *First modality*:
 
-| Row        	| Information 		| Explanation  								| Example		|
-| :-----------: |:---------------------:| :---------------------------------------------------------------------|:---------------------:|
-| First    	| **STA: x TEM: y** 	| *x* = H/T/C (halt/timeout/controlled), and *y* is the temperature 	| STA: C TEM: 22.3 	|
-| Second      	| **RPM: n1,n2**     	| *n1* and *n2* are the applied RPM 					| RPM: -1000,-2000	|
+| Row        	| Information 		| Explanation  								| 
+| :-----------: |:---------------------:| :---------------------------------------------------------------------|
+| First    	| **STA: x TEM: y** 	| *x* = H/T/C (halt/timeout/controlled), and *y* is the temperature 	| 
+| Second      	| **RPM: n1,n2**     	| *n1* and *n2* are the applied RPM 					| 
+
+![LCD modality 1](/images/LCD_mod1.jpg)
+
 
   - If the button S6 is pressed, the LCD should change into *second modality*:
 
-| Row        	| Information 			 | Explanetion  								| Example		|
-| :-----------: |:------------------------------:| :-------------------------------------------------------			|:-----------------------------:|
-| First    	| **SAT: x/y**			 | *x* and *y* are the minimum and maximum current saturation values set	| SAT: -8000/8000 	|
-| Second      	| **RPM: PDC1,PDC2**    	 | *PDC1* and *PDC2* are the values of the duty cycle PWM registers		| RPM: 1658,1474	|
+| Row        	| Information 			 | Explanation  								| 
+| :-----------: |:------------------------------:| :-------------------------------------------------------			|
+| First    	| **SAT: x/y**			 | *x* and *y* are the minimum and maximum current saturation values set	| 
+| Second      	| **RPM: PDC1,PDC2**    	 | *PDC1* and *PDC2* are the values of the duty cycle PWM registers		| 
+
+![LCD modality 2](/images/LCD_mod2.jpg)
 
 ##### D. Feedback to the PC
 - The firmware must acquire the temperature sensor at 10 Hz frequency and average the last 10 readings. The averaged value is sent to the PC at 1 Hz frequency with the **MCTEM** message
@@ -85,7 +90,7 @@ reference signals are sent through a serial interface. The microcontroller sends
 ## Getting Started
 ### Host system requirements
 
-- PC-compatible system with an Interl class processor, or equivalent
+- PC-compatible system with an Intel class processor, or equivalent
 - A minimum of 16 MB RAM
 - A minimum fo 40 MB available hard drive space 
 
@@ -96,7 +101,7 @@ reference signals are sent through a serial interface. The microcontroller sends
 
 ### Set up
 
-1. Check that the board has all the jumpers and switches in the same position as the image below. In particular pay attention to the ones highlighted with a yellow rectangle around
+1. Check that the board has all the jumpers and switches in the same position of the yellow rectangles in the image below
 
 <p align="center">
   <img src="images/dsPICDEM2.jpg" width="500">
@@ -107,6 +112,17 @@ reference signals are sent through a serial interface. The microcontroller sends
 <p align="center">
   <img src="images/Connections.jpg" width="900">
 </p>
+
+3. Attach the motors in **H8** as follow:
+
+| Motor        	| PWM pin 			|
+| :-----------: |:-----------------------------:| 
+| Left    	| RE1		 		| 
+| Right      	| RE3    			| 
+
+**NOTE:** For more detailed information about the connections check [dsPICDEM2_drawings.pdf](https://github.com/cesca95/AutonomousCatamaran/blob/master/docs/dsPICDEM2_drawings.pdf) file
+
+
 
 ## How to run the project
 
@@ -123,7 +139,7 @@ reference signals are sent through a serial interface. The microcontroller sends
   <img src="images/hterm.jpg" width="900">
 </p>
 
-  - Change the UART baudrate from 11500 bps to **9600** bps
+  - Change the UART baudrate from **115200** bps to **9600** bps
   - Click on **Connect** botton
   - You are going to receive these three different type of feedback messages from the board:
     - $MCFBK,n1,n2,state*
@@ -136,6 +152,9 @@ reference signals are sent through a serial interface. The microcontroller sends
   - $HLENA*
 
 5. To simulate **safe mode** you have to press button **S5** of the board
+
+![Example hterm](/images/Example_hterm.PNG) 
+
 
 
 ### More information about messages
