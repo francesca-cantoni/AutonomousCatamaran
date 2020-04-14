@@ -157,8 +157,10 @@ reference signals are sent through a serial interface. The microcontroller sends
   - Click on **Connect** botton
 
 ## How to use it
-##### Messages from the control PC to the board
-You have these three different types of messages through which you can control the board:
+### Simulate safe mode
+To simulate the **safe mode** you have to press **button S5**
+### Messages from the control PC to the board
+You have these three different types of messages to control the catamaran:
 
 | Message        			   | First parameter 	   	   	| Second parameter       		| Third parameter	|
 | :---------------------------------------:|:---------------------:	   	| :---------------------:		|:---------------------:|
@@ -166,7 +168,7 @@ You have these three different types of messages through which you can control t
 | <code> <b> $HLSAT,min,max* </b> </code>  | To change the saturation values 	| *min* is the minimum RPM allowed 	| *max* is the maximum RPM allowed|
 |  <code> <b> $HLENA* </b> </code> 	   | To exit safe mode 			| 					| 					|
 
-##### Feedbacks from the board to the control PC
+### Feedbacks from the board to the control PC
 You are going to receive these three different types of feedback based on the message that you have sent via the control PC:
 | Message        			   	| First parameter 	   	   	| Second parameter       		| Third parameter	| Fourth parameter 
 | :---------------------------------------:	|:---------------------:	   	| :---------------------:		|:---------------------:|:---------------------:|
@@ -177,8 +179,6 @@ You are going to receive these three different types of feedback based on the me
 <p align="center">
   <img src="images/Example_hterm.PNG" width="900">
 </p>
-
-
 
 
 ## Additional material
