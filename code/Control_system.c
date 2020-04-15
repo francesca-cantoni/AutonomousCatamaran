@@ -339,7 +339,6 @@ void tmr_wait_period(int timer) {
 } // Function to stay synchronized with an event with the periodicity equal to the period of the timer
 void tmr_wait_ms(int timer, int ms){
     // fcy=(fosc/4) = (7.372800/4) = 1843200 clocks/s
-    // with a 1:256 prescaler : Fcy/256 = 7 200 < 65 535 (max value)
 
     int prescaler, pr_value;
     choose_prescaler(ms, &prescaler, &pr_value);
@@ -498,7 +497,7 @@ float get_SumTemperature(){
     return(sumTemp);    // Convert the voltage to the corresponding temperature
 }   // Automatically read the value from the ADC and convert it in temperature
 
-// PWM
+// PWM //
 void saturation_RPM(){
     if(rpm1 > maxRPM){rpm1 = maxRPM;}
     if(rpm1 < minRPM){rpm1 = minRPM;}
@@ -670,6 +669,7 @@ int read_buffer(volatile CircularBuffer* cb, char*  value){
 void read_msg(){
     while(read_buffer(&cb,&value) == 1){    // There is at least one unread value in the circular buffer
         if(parse_byte(&pstate,value) == NEW_MESSAGE){       // First value is a $ (new message is received)
+            
             // REFERENCE VALUES MESSAGE //
             if(strcmp(pstate.msg_type,"HLREF") == 0){
                 if(currentState != SAFE){
