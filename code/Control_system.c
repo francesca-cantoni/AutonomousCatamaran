@@ -123,9 +123,9 @@ void saturation_RPM();
 void send_PWM();
 
 // FEEDBACK TO PC //
-void send_MCTEM();
-void send_MCFBK();
-void send_MCACK();
+void MCTEM();
+void MCFBK();
+void send_feedback();
 
 // PARSER //
 int extract_integer(const char* str);
@@ -152,8 +152,8 @@ heartbeat t3 = {.n = 0, .N = 20/HB};        // Every 20 ms (check_buttons())
 heartbeat t4 = {.n = -1, .N = 100/HB};      // Every 100 ms (send duty_cycle())
 heartbeat t5 = {.n = -1, .N = 100/HB};      // Every 100 ms (LCD_display())
 heartbeat t6 = {.n = 0, .N = 100/HB};       // Every 100 ms (read_msg())
-heartbeat t7 = {.n = 0, .N = 20/HB};        // Every 20 ms (send_MCACK())
-heartbeat t8 = {.n = -2, .N = 200/HB};      // Every 200 ms (send_MCFBK())
+heartbeat t7 = {.n = 0, .N = 20/HB};        // Every 20 ms (send_feedback())
+heartbeat t8 = {.n = -2, .N = 200/HB};      // Every 200 ms (MCFBK())
 
 // Function 
 void scheduler();
@@ -542,30 +542,26 @@ void send_PWM(){
 }   // Send the duty cycles to the motors
 
 // FEEDBACK TO PC //
-void send_MCTEM(){
-    char text[25];
-    int i = 0;
-    sprintf(text,"$MCTEM,%3.1f*",(double)averTemp);
-    while(text[i] != '\0'){
-        while(U2STAbits.UTXBF == 1);    // Wait until it is possible to send again (transmit buffer is no more full)
-        U2TXREG = text[i];      // Character to be written into the transmit buffer
-        i++;
-    }
+void MCTEM(){
+    char strbuf[25];
+    // MCTEM feedback
+    sprintf(strbuf,"$MCTEM,%3.1f*",(double)averTemp);  
+    write_buffTX_string(strbuf);
 }
-void send_MCFBK(){
-    char text[25];
-    int i = 0;
-    sprintf(text,"$MCFBK,%d,%d,%d*",rpm1,rpm2,currentState);
-    while(text[i] != '\0'){
-        while(U2STAbits.UTXBF == 1);    // Wait until it is possible to send again (transmit buffer is no more full)
-        U2TXREG = text[i];      // Character to be written into the transmit buffer
-        i++;
-    }
+void MCFBK(){
+    char strbuf[25];
+    // MCKBF feedback
+    sprintf(strbuf,"$MCFBK,%d,%d,%d*",rpm1,rpm2,currentState);  
+    write_buffTX_string(strbuf);
 }
-void send_MCACK(){
-    while(read_bufferTX(&cbTX,&valueTX) == 1){    // There is at least one unread char in the circular buffer
+void send_feedback(){
+    while(read_bufferTX(&cbTX,&valueTX) == 1){    // There is one unread char in the circular buffer
         while(U2STAbits.UTXBF == 1);    // Wait until you can send again (transmit buffer is no more full)
         U2TXREG = valueTX;      // Character to be sent to the transmit buffer
+        
+        if (valueTX == '*'){
+           break;          // End of TX for this hearbeat
+        }        
     }
     
 }
@@ -651,14 +647,14 @@ void write_buffer(volatile CircularBuffer* cb, char value){
 
 void write_buffTX_string(char *text){
     int i=0;
-    while(semaphore == 0){     // The shared data circular buffer TX is not used by another function
-        while(text[i] != '\0'){
-            semaphore =  1;     // Take the semaphore
-            write_buffer(&cbTX, text[i]);      // Character to be sent to the transmit buffer
-            i++;
-        }
-        semaphore = 0;          // Release the semaphore
+    while(semaphore == 0)     // Wait till the shared data circular buffer TX is not used by another function
+    while(text[i] != '\0'){
+        semaphore =  1;     // Take the semaphore
+        write_buffer(&cbTX, text[i]);      // Character to be sent to the transmit buffer
+        i++;
     }
+    semaphore = 0;          // Release the semaphore
+    
 }
 
 void __attribute__ (( __interrupt__ , __auto_psv__ ) ) _U2RXInterrupt() {
@@ -785,7 +781,7 @@ void scheduler(){
                         averTemp = sumTemp/countTemp;
                         countTemp = 0;
                         sumTemp = 0;
-                        //send_MCTEM();
+                        MCTEM();
                     }
                     break;
                 case 3:     
@@ -801,10 +797,10 @@ void scheduler(){
                     read_msg();
                     break;
                 case 7:     
-                    send_MCACK();
+                    send_feedback();
                     break;
                 case 8:     
-                    //send_MCFBK();
+                    MCFBK();
                     break;
                 default:
                     break;
