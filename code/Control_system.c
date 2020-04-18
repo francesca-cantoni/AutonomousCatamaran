@@ -42,7 +42,7 @@
 #define CONTROLLED 0
 #define TIMEOUT 1
 #define SAFE 2
-#define MAX_TASKS 9
+#define MAX_TASKS 8
 #define BUFFER_SIZE 100   // 9600/10 = 960 bytes per second
                           // 960/10 = 96 bytes per 100 ms
 #define HB 20   // Heartbeat = 20ms (minimum value among all the periods of the tasks executed in the scheduler)
@@ -79,7 +79,7 @@ char valueRX = ' ';
 volatile CircularBuffer cbTX;     // Circular buffer for store char that has to be sent via UART
 char valueTX = ' ';
 int semaphore = 0;      // 0 --> none is writing in the shared resource
-                        // 1--> some function is writing in the shared resource
+                        // 1--> a function is writing in the shared resource
 
 // PARSER //
 parser_state pstate = {.state = STATE_DOLLAR, .index_type = 0, .index_payload = 0};
@@ -146,14 +146,14 @@ void read_msg();
 // SCHEDULER //
 // Tasks  
 heartbeat schedInfo[MAX_TASKS]; 
-heartbeat t1 = {.n = 0, .N = 500/HB};       // Every 500 ms (blink_Leds())
-heartbeat t2 = {.n = -3, .N = 100/HB};      // Every 100 ms (get_temp())
-heartbeat t3 = {.n = 0, .N = 20/HB};        // Every 20 ms (check_buttons())
-heartbeat t4 = {.n = -1, .N = 100/HB};      // Every 100 ms (send duty_cycle())
-heartbeat t5 = {.n = -1, .N = 100/HB};      // Every 100 ms (LCD_display())
-heartbeat t6 = {.n = 0, .N = 100/HB};       // Every 100 ms (read_msg())
-heartbeat t7 = {.n = 0, .N = 20/HB};        // Every 20 ms (send_feedback())
-heartbeat t8 = {.n = -2, .N = 200/HB};      // Every 200 ms (MCFBK())
+heartbeat t0 = {.n = 0, .N = 500/HB};       // Every 500 ms (blink_Leds())
+heartbeat t1 = {.n = -3, .N = 100/HB};      // Every 100 ms (get_temp())
+heartbeat t2 = {.n = 0, .N = 20/HB};        // Every 20 ms (check_buttons())
+heartbeat t3 = {.n = -1, .N = 100/HB};      // Every 100 ms (send duty_cycle())
+heartbeat t4 = {.n = -1, .N = 100/HB};      // Every 100 ms (LCD_display())
+heartbeat t5 = {.n = 0, .N = 100/HB};       // Every 100 ms (read_msg())
+heartbeat t6 = {.n = 0, .N = 20/HB};        // Every 20 ms (send_feedback())
+heartbeat t7 = {.n = -2, .N = 200/HB};      // Every 200 ms (MCFBK())
 
 // Function 
 void scheduler();
@@ -175,14 +175,14 @@ int main(void) {
     tmr_setup_period(tmrUART, 5000); // Every 5 s
     
     // Initialization of the tasks for the scheduler
+    schedInfo[0] = t0;      
     schedInfo[1] = t1;      
-    schedInfo[2] = t2;      
-    schedInfo[3] = t3;       
+    schedInfo[2] = t2;       
+    schedInfo[3] = t3;      
     schedInfo[4] = t4;      
     schedInfo[5] = t5;      
-    schedInfo[6] = t6;      
+    schedInfo[6] = t6;
     schedInfo[7] = t7;
-    schedInfo[8] = t8;
             
     T2CONbits.TON = 1;  // Starting tmr2 (tmrUART)  for TIMEOUT mode 
     T1CONbits.TON = 1;  // Starting tmr1 (tmrHeartbeat) for the hearbeat of the scheduler 
@@ -767,14 +767,14 @@ void read_msg(){
 // SCHEDULER //
 void scheduler(){
     int j;
-    for (j = 1; j < MAX_TASKS+1; j++){
+    for (j = 0; j < MAX_TASKS; j++){
         schedInfo[j].n++;   // Increase the number of heartbeats that had elapsed up to now
         if (schedInfo[j].n == schedInfo[j].N){  // If it is time for the task to be executed
             switch(j){
-                case 1:     
+                case 0:     
                     blink_Leds();
                     break;
-                case 2:     
+                case 1:     
                     countTemp++;
                     sumTemp = get_SumTemperature();
                     if(countTemp==10){ // average of the last 10 acquired temperatures
@@ -784,22 +784,22 @@ void scheduler(){
                         MCTEM();
                     }
                     break;
-                case 3:     
+                case 2:     
                     check_button(); 
                     break;
-                case 4:     
+                case 3:     
                     send_PWM();
                     break;
-                case 5:     
+                case 4:     
                     LCD_display();
                     break;
-                case 6:     
+                case 5:     
                     read_msg();
                     break;
-                case 7:     
+                case 6:     
                     send_feedback();
                     break;
-                case 8:     
+                case 7:     
                     MCFBK();
                     break;
                 default:
