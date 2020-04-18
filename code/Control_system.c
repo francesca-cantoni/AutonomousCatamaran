@@ -42,8 +42,9 @@
 #define CONTROLLED 0
 #define TIMEOUT 1
 #define SAFE 2
-#define MAX_TASKS 8
-#define BUFFER_SIZE 40   // Enough for two calls of read_msg()
+#define MAX_TASKS 9
+#define BUFFER_SIZE 100   // 9600/10 = 960 bytes per second
+                          // 960/10 = 96 bytes per 100 ms
 #define HB 20   // Heartbeat = 20ms (minimum value among all the periods of the tasks executed in the scheduler)
 
 // Heartbeat structure //
@@ -60,7 +61,7 @@ typedef struct{
 }CircularBuffer;
 
 // Global Variables //
-char charState[3] = {'C','T','H'};
+
 int flagError = 0;  // 0-->correct functioning, 1-->problem (overflow or 
                     //                          overcoming of Heartbeat period by one task)
 int currentState = 0;   // From 0 to 2 depending on the state
@@ -118,7 +119,7 @@ float get_SumTemperature();
 
 // PWM //
 void saturation_RPM();
-void send_duty_cycle();
+void send_PWM();
 
 // FEEDBACK TO PC //
 void send_MCTEM();
@@ -237,7 +238,7 @@ void init_UART(){
     U2BRG = 11;     // [(7372800/4)/(16*9600)] - 1 = 11
     U2MODEbits.UARTEN = 1;  // Enable UART2
     U2STAbits.UTXEN = 1;    // Enable transmission via U2TX
-    U2STAbits.URXISEL = 0;  // Interrupt flag is generated when a character is received 
+    U2STAbits.URXISEL = 0;  // Interrupt flag is generated when a char is received 
     IEC0bits.T2IE = 1;  //Enable interrupt for tmr2 (tmrUART) 
     IEC1bits.U2RXIE = 1; //Enable interupt for UART
 } // Setup UART2 communication at 9600 baudrate
@@ -420,13 +421,20 @@ void LCD_display(){
     // FIRST CONFIGURATION
     if (display == 0){
         // current status //
-        LCD_write("sta:");
-        // write only one word (C or H or T) on the LCD
-        while(SPI1STATbits.SPITBF == 1);    // Wait until the next transmission starts
-        SPI1BUF = charState[currentState];  // Write the letter related to the current state
+        switch(currentState){
+            case 0: // CONTROLLED MODE
+                sprintf (strbuf, "sta:C ");
+                break;
+            case 1: // TIMEOUT MODE
+                sprintf (strbuf, "sta:T ");
+                break;
+            case 2: // SAFE MODE
+                sprintf (strbuf, "sta:H ");
+                break;
+        }
+        LCD_write(strbuf);
         // temperature //
-        sprintf (strbuf, "%3.1f", (double)averTemp);   // Float with 3 digits before the comma and 1 after
-        LCD_write(" temp:");
+        sprintf (strbuf, "temp:%3.1f", (double)averTemp);   // Float with 3 digits before the comma and 1 after
         LCD_write(strbuf);
         // applied rmp //
         move_cursor_middle();
@@ -504,7 +512,7 @@ void saturation_RPM(){
     if(rpm2 > maxRPM){rpm2 = maxRPM;}
     if(rpm2 < minRPM){rpm2 = minRPM;}
 }   // Saturate the rpm according to the min and max values coming from the user
-void send_duty_cycle(){
+void send_PWM(){
     if(currentState == CONTROLLED){
         saturation_RPM();
         double duty1;
@@ -603,19 +611,20 @@ int sat_requirements_check(int min, int max){
 }
 void parse_HLSAT(const char* msg){
     int i = 0;
-    int min = minRPM;
-    int max = maxRPM;
-    minRPM = extract_integer(msg);
+    int receivedMin;
+    int receivedMax;
+    receivedMin = extract_integer(msg);
     i = next_value(msg,i);
-    maxRPM = extract_integer(msg + i);
-    if(sat_requirements_check(minRPM,maxRPM) == 1){
+    receivedMax = extract_integer(msg + i);
+    if(sat_requirements_check(receivedMin,receivedMax) == 1){
+        // Change the current saturation values
+        minRPM = receivedMin;
+        maxRPM = receivedMax;
         ACK_enable = 1;         // Enable to send ACK to the PC
         ACK_msg_type = "SAT";   // Define the msg_type
         ACK_value = 1;          // SUCCESSFUL --> the current saturation values are updated    
     }
     else{
-        minRPM = min;
-        maxRPM = max;
         ACK_enable = 1;         // Enable to send ACK to the PC
         ACK_msg_type = "SAT";   // Define the msg_type
         ACK_value = 0;          // UNSUCCESSFUL --> the current saturation values are not updated
@@ -626,7 +635,7 @@ void parse_HLSAT(const char* msg){
 void write_buffer(volatile CircularBuffer* cb, char value){
     cb->buffer[cb->writeIndex] = value;
     if (cb->writeIndex == cb->readIndex-1)
-        cb->writeIndex;     // Discharg the last value otherwise you are going 
+        cb->writeIndex;     // Discharg the last char otherwise you are going 
                             // to read the most recent one instead of the oldest one
     else
         cb->writeIndex++;
@@ -634,7 +643,7 @@ void write_buffer(volatile CircularBuffer* cb, char value){
     if (cb->writeIndex == BUFFER_SIZE){     // Circular behaviour
         cb->writeIndex = 0;
     }
-}   // Write the value received from UART2 in the circular buffer
+}   // Write the char into the circular buffer for UART communication
 
 void __attribute__ (( __interrupt__ , __auto_psv__ ) ) _U2RXInterrupt() {
     IFS1bits .U2RXIF = 0;   // Put the flag down
@@ -642,15 +651,15 @@ void __attribute__ (( __interrupt__ , __auto_psv__ ) ) _U2RXInterrupt() {
         flagError = 1;  // Signal an error for the overflow
         U2STAbits.OERR = 0;     // Put down manually the flag (loss of bytes)
     }
-    char val = U2RXREG;     // Get the value received by UART
-    write_buffer(&cb, val); // Write the received value in the circular buffer
-} // INTERRUPT for read value from UART2
+    char val = U2RXREG;     // Get the char received by UART
+    write_buffer(&cb, val); // Write the received char in the circular buffer
+} // INTERRUPT for read char from UART2
 
 int read_buffer(volatile CircularBuffer* cb, char*  value){
     // Safe way to manage shared data
     // 1) disable the interrupt in reception 
     IEC1bits.U2RXIE = 0;
-    if (cb->readIndex == cb->writeIndex){ //Can't read and write at the same time
+    if (cb->readIndex == cb->writeIndex){ // None new message
         IEC1bits.U2RXIE = 1;    // Renable the interrupt in reception
         return 0;
     }
@@ -663,19 +672,19 @@ int read_buffer(volatile CircularBuffer* cb, char*  value){
     // 3) Renable the interrupt in reception
     IEC1bits.U2RXIE = 1; 
     return 1;
-}   // Read the value stored in the circular buffer
+}   // Read the char stored in the circular buffer
 
 
 void read_msg(){
-    while(read_buffer(&cb,&value) == 1){    // There is at least one unread value in the circular buffer
-        if(parse_byte(&pstate,value) == NEW_MESSAGE){       // First value is a $ (new message is received)
+    while(read_buffer(&cb,&value) == 1){    // There is at least one unread char in the circular buffer
+        if(parse_byte(&pstate,value) == NEW_MESSAGE){       // New valid message is received
             
             // REFERENCE VALUES MESSAGE //
             if(strcmp(pstate.msg_type,"HLREF") == 0){
                 if(currentState != SAFE){
                     // Reset the counter of tmr2 (TIMEOUT mode) in safe way
                     T2CONbits.TON = 0; // Disable the counter of tmr2
-                    TMR2 = 0;   // Reset the counter value inside tmr2 
+                    TMR2 = 0;   // Reset the counter value inside TMR2 
                     T2CONbits.TON = 1; // Begin tmr2
                     ACK_enable = 1;         // Enable to send ACK to the PC
                     ACK_msg_type = "REF";   // Define the msg_type
@@ -746,7 +755,7 @@ void scheduler(){
                     check_button(); 
                     break;
                 case 4:     
-                    send_duty_cycle();
+                    send_PWM();
                     break;
                 case 5:     
                     LCD_display();
