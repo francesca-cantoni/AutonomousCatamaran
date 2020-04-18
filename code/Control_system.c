@@ -61,7 +61,6 @@ typedef struct{
 }CircularBuffer;
 
 // Global Variables //
-
 int flagError = 0;  // 0-->correct functioning, 1-->problem (overflow or 
                     //                          overcoming of Heartbeat period by one task)
 int currentState = 0;   // From 0 to 2 depending on the state
@@ -75,14 +74,15 @@ int rpm2 = 0;   // rpm for motor 2 (right)
 int maxRPM = 8000;    // Limited by the propeller
 int minRPM = -8000;   // Limited by the propeller
 double halfDutyCycle = 1842.0;  // DC 50% = PTPER = 0 rpm
-volatile CircularBuffer cb;     // Circular buffer for store data received via UART
-char *ACK_msg_type;     // Pointer to the msg_type string associated to MCACK feedback 
-int ACK_value;          // value of ACK: 1-->successful operation & 0-->unsuccessful operation
-int ACK_enable=0;       // Disable(0) or Enable(1)the sending of MCACK feedback to the PC
+volatile CircularBuffer cbRX;     // Circular buffer for store char received via UART
+char valueRX = ' ';
+volatile CircularBuffer cbTX;     // Circular buffer for store char that has to be sent via UART
+char valueTX = ' ';
+int semaphore = 0;      // 0 --> none is writing in the shared resource
+                        // 1--> some function is writing in the shared resource
 
 // PARSER //
 parser_state pstate = {.state = STATE_DOLLAR, .index_type = 0, .index_payload = 0};
-char value = ' ';
 
 // INITIALIZATION //
 void init_GPIO();
@@ -102,6 +102,7 @@ void tmr_wait_period(int timer);
 void tmr_wait_ms(int timer, int ms);
 
 // DISPLAY //
+void put_char_SPI(char c);
 void LCD_write(char *text);
 void move_cursor_begin();
 void move_cursor_middle();
@@ -136,7 +137,9 @@ void parse_HLSAT(const char* msg);
 
 // UART //
 void write_buffer(volatile CircularBuffer* cb, char value);
-int read_buffer(volatile CircularBuffer* cb, char*  value);
+void write_buffTX_string(char *text);
+int read_bufferRX(volatile CircularBuffer* cb, char*  value);
+int read_bufferTX(volatile CircularBuffer* cb, char*  value);
 void read_msg();
 
 
@@ -382,15 +385,21 @@ void __attribute__ (( __interrupt__ , __auto_psv__ )) _T2Interrupt() {
 
 
 // DISPLAY //
+void put_char_SPI(char c){
+    while (SPI1STATbits.SPITBF == 1); // Wait for previous transmissions to finish
+    SPI1BUF = c;
+} // Write a single char on the LCD
 void LCD_write(char *text){
     int i = 0;
     while(text[i] != '\0'){
-        while(SPI1STATbits.SPITBF == 1);    // Wait until the next transmission starts
         if (i == 15){
+            while(SPI1STATbits.SPITBF == 1);    // Wait until the next transmission starts
             SPI1BUF = 0xC0;     // Second row of the display
         }
-        SPI1BUF = text[i];
-        i++;
+        else{
+            put_char_SPI(text[i]);
+            i++;
+        }
     }
 }   // Write a message on the LCD
 void move_cursor_begin(){
@@ -554,17 +563,11 @@ void send_MCFBK(){
     }
 }
 void send_MCACK(){
-    if(ACK_enable == 1){
-        char text[25];
-        int i = 0;
-        sprintf(text,"$MCACK,%s,%d*",ACK_msg_type,ACK_value);
-        while(text[i] != '\0'){
-            while(U2STAbits.UTXBF == 1);    // Wait until you can send again (transmit buffer is no more full)
-            U2TXREG = text[i];      // Character to be sent to the transmit buffer
-            i++;
-        }
-        ACK_enable = 0;     // The ACK feedback will not be send if no needed
+    while(read_bufferTX(&cbTX,&valueTX) == 1){    // There is at least one unread char in the circular buffer
+        while(U2STAbits.UTXBF == 1);    // Wait until you can send again (transmit buffer is no more full)
+        U2TXREG = valueTX;      // Character to be sent to the transmit buffer
     }
+    
 }
 
 // PARSER //
@@ -610,6 +613,7 @@ int sat_requirements_check(int min, int max){
     }    
 }
 void parse_HLSAT(const char* msg){
+    char strbuf[25];
     int i = 0;
     int receivedMin;
     int receivedMax;
@@ -620,14 +624,14 @@ void parse_HLSAT(const char* msg){
         // Change the current saturation values
         minRPM = receivedMin;
         maxRPM = receivedMax;
-        ACK_enable = 1;         // Enable to send ACK to the PC
-        ACK_msg_type = "SAT";   // Define the msg_type
-        ACK_value = 1;          // SUCCESSFUL --> the current saturation values are updated    
+        // ACK feedback
+        sprintf(strbuf, "$MCACK,SAT,1*");   // SUCCESSFUL --> the current saturation values are updated
+        write_buffTX_string(strbuf);
     }
     else{
-        ACK_enable = 1;         // Enable to send ACK to the PC
-        ACK_msg_type = "SAT";   // Define the msg_type
-        ACK_value = 0;          // UNSUCCESSFUL --> the current saturation values are not updated
+        // ACK feedback
+        sprintf(strbuf, "$MCACK,SAT,0*");   // UNSUCCESSFUL --> the current saturation values are not updated
+        write_buffTX_string(strbuf);
     }
 }
 
@@ -645,6 +649,18 @@ void write_buffer(volatile CircularBuffer* cb, char value){
     }
 }   // Write the char into the circular buffer for UART communication
 
+void write_buffTX_string(char *text){
+    int i=0;
+    while(semaphore == 0){     // The shared data circular buffer TX is not used by another function
+        while(text[i] != '\0'){
+            semaphore =  1;     // Take the semaphore
+            write_buffer(&cbTX, text[i]);      // Character to be sent to the transmit buffer
+            i++;
+        }
+        semaphore = 0;          // Release the semaphore
+    }
+}
+
 void __attribute__ (( __interrupt__ , __auto_psv__ ) ) _U2RXInterrupt() {
     IFS1bits .U2RXIF = 0;   // Put the flag down
     if(U2STAbits.OERR == 1){    // If an overflow occured
@@ -652,10 +668,10 @@ void __attribute__ (( __interrupt__ , __auto_psv__ ) ) _U2RXInterrupt() {
         U2STAbits.OERR = 0;     // Put down manually the flag (loss of bytes)
     }
     char val = U2RXREG;     // Get the char received by UART
-    write_buffer(&cb, val); // Write the received char in the circular buffer
+    write_buffer(&cbRX, val); // Write the received char in the circular buffer
 } // INTERRUPT for read char from UART2
 
-int read_buffer(volatile CircularBuffer* cb, char*  value){
+int read_bufferRX(volatile CircularBuffer* cb, char*  value){
     // Safe way to manage shared data
     // 1) disable the interrupt in reception 
     IEC1bits.U2RXIE = 0;
@@ -674,11 +690,31 @@ int read_buffer(volatile CircularBuffer* cb, char*  value){
     return 1;
 }   // Read the char stored in the circular buffer
 
+int read_bufferTX(volatile CircularBuffer* cb, char*  value){
+    // Safe way to manage shared data
+    // 1) Take the sempaphore 
+    semaphore = 1;      // Take the semaphore
+    if (cb->readIndex == cb->writeIndex){ // None new message
+        semaphore = 0;    // Release the semaphore
+        return 0;
+    }
+    // 2) copy the data and act on it
+    *value = cb->buffer[cb->readIndex];
+    
+    cb->readIndex++;
+    if(cb->readIndex == BUFFER_SIZE){   // Circular behaviour
+        cb->readIndex=0;
+    }
+    // 3) Release the seamphore
+    semaphore = 0;    // Release the semaphore 
+    return 1;
+}   // Read the char stored in the circular buffer
+
 
 void read_msg(){
-    while(read_buffer(&cb,&value) == 1){    // There is at least one unread char in the circular buffer
-        if(parse_byte(&pstate,value) == NEW_MESSAGE){       // New valid message is received
-            
+    while(read_bufferRX(&cbRX,&valueRX) == 1){    // There is at least one unread char in the circular buffer
+        if(parse_byte(&pstate,valueRX) == NEW_MESSAGE){       // New valid message is received
+            char strbuf[25];
             // REFERENCE VALUES MESSAGE //
             if(strcmp(pstate.msg_type,"HLREF") == 0){
                 if(currentState != SAFE){
@@ -686,9 +722,10 @@ void read_msg(){
                     T2CONbits.TON = 0; // Disable the counter of tmr2
                     TMR2 = 0;   // Reset the counter value inside TMR2 
                     T2CONbits.TON = 1; // Begin tmr2
-                    ACK_enable = 1;         // Enable to send ACK to the PC
-                    ACK_msg_type = "REF";   // Define the msg_type
-                    ACK_value = 1;          // SUCCESSFUL --> The current reference values are received
+                    // ACK feedback
+                    sprintf(strbuf, "$MCACK,REF,1*");   // SUCCESSFUL --> The current reference values are received
+                    write_buffTX_string(strbuf);
+                    // Change of the state
                     if(currentState == TIMEOUT){
                         currentState = CONTROLLED;
                     }
@@ -696,9 +733,9 @@ void read_msg(){
                 }
                 // The catamaran is in SAFE mode
                 else{ 
-                    ACK_enable = 1;         // Enable to send ACK to the PC
-                    ACK_msg_type = "REF";   // Define the msg_type
-                    ACK_value = 0;          // UNSUCCESSFUL --> The current reference values are received but not updated     
+                    // ACK feedback
+                    sprintf(strbuf, "$MCACK,REF,0*");   // UNSUCCESSFUL --> The current reference values are received but not updated 
+                    write_buffTX_string(strbuf);  
                 }
             }
             
@@ -716,15 +753,15 @@ void read_msg(){
                     T2CONbits.TON = 0;      // Disable tmr2
                     TMR2 = 0;           // Reset the counter value inside TMR2
                     T2CONbits.TON = 1;      // begin tmr2
-                    ACK_enable = 1;         // Enable to send ACK to the PC
-                    ACK_msg_type = "ENA";   // Define the msg_type
-                    ACK_value = 1;          // SUCCESSFUL --> change of status between SAFE and CONTROLLED
+                    // ACK feedback
+                    sprintf(strbuf, "$MCACK,ENA,1*");   // SUCCESSFUL --> change of status between SAFE and CONTROLLED
+                    write_buffTX_string(strbuf);
                 }
                 // The catamaran was not in SAFE mode
                 else{
-                    ACK_enable = 1;         // Enable to send ACK to the PC
-                    ACK_msg_type = "ENA";   // Define the msg_type
-                    ACK_value = 0;          // UNSUCCESSFUL --> no change of status
+                    // ACK feedback
+                    sprintf(strbuf, "$MCACK,ENA,0*");   // UNSUCCESSFUL --> no change of status
+                    write_buffTX_string(strbuf);
                 }
             }
         }
@@ -748,7 +785,7 @@ void scheduler(){
                         averTemp = sumTemp/countTemp;
                         countTemp = 0;
                         sumTemp = 0;
-                        send_MCTEM();
+                        //send_MCTEM();
                     }
                     break;
                 case 3:     
@@ -767,7 +804,7 @@ void scheduler(){
                     send_MCACK();
                     break;
                 case 8:     
-                    send_MCFBK();
+                    //send_MCFBK();
                     break;
                 default:
                     break;
