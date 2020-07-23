@@ -30,7 +30,7 @@ reference signals are sent through a serial interface. The microcontroller sends
 
 | State        	| Symbol | Effect  |
 | :-----------: |:------:| :------:|
-| Controlled    | C 	 | Motors velocity are set to * n1 * and * n2 * for the left and right motor respectively |
+| Controlled    | C 	 | Motors velocity are set to *n1* and *n2* for the left and right motor respectively |
 | Time out      | T      | Both motors velocity are set to zero because none references were received from the control PC for more than 5 seconds|
 | Safe mode 	| H      | Motors are stopped immediately and new reference signals are ignored until the microcontroller receives the enable message from the control PC |
 
@@ -173,7 +173,7 @@ You are going to receive these three different types of feedback based on the me
 | Message        			   	| First parameter 	   	   	| Second parameter       		| Third parameter	| Fourth parameter 
 | :---------------------------------------:	|:---------------------:	   	| :---------------------:		|:---------------------:|:---------------------:|
 | <code> <b> $MCFBK,n1,n2,state* </b> </code>   | Feedback to HLREF message  | *n1* is the applied reference signal for left motor| *n2* is the applied reference signal for right motor  | *state* is 2 if the microcontroller is in safe mode, 1 if it is in timeout mode, 0 otherwise |
-| <code> <b> $MCTEM,temp* </b> </code>  	| Feedback to know the temperature of the board | *min* is the minimum RPMs allowed | *max* is the maximum RPMs allowed|	|
+| <code> <b> $MCTEM,temp* </b> </code>  	| Feedback to know the temperature of the board |  | |	|
 | <code> <b> $MCACK,msg\_type,value* </b> </code>| Acknowledgment feedback| *msg_type* is the command (e.g. REF, ENA, SAT)| *value* is 1 if the message was applied and 0 otherwise|	|
 
 <p align="center">
