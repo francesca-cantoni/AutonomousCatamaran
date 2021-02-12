@@ -1,6 +1,6 @@
 # Autonomous Catamaran
 
-The aim of this project is to implement a basic control system for an autonomous catamaran using [DsPICDEM 2 Development board](https://github.com/cesca95/AutonomousCatamaran/blob/master/docs/dsPICDEM2.pdf).
+The aim of this project is to implement a basic control system for an autonomous catamaran using [DsPICDEM 2 Development board](https://github.com/francesca-cantoni/AutonomousCatamaran/blob/master/docs/dsPICDEM2.pdf).
 
 <p align="center">
   <img src="images/Overview.png" width="700">
@@ -132,7 +132,7 @@ reference signals are sent through a serial interface. The microcontroller sends
 
 
 
-**NOTE:** For more information about the connections check [dsPICDEM2_drawings.pdf](https://github.com/cesca95/AutonomousCatamaran/blob/master/docs/dsPICDEM2_drawings.pdf) file
+**NOTE:** For more information about the connections check [dsPICDEM2_drawings.pdf](https://github.com/francesca-cantoni/AutonomousCatamaran/blob/master/docs/dsPICDEM2_drawings.pdf) file
 
 
 ## How to run it
@@ -140,7 +140,7 @@ reference signals are sent through a serial interface. The microcontroller sends
 1.  Clone the repository in your computer through the command:
 
     ```bash
-    git clone https://github.com/cesca95/AutonomousCatamaran.git
+    git clone https://github.com/francesca-cantoni/AutonomousCatamaran.git
     ```
 2. Create a new project in **MPBLAB X IDE** and add the files contained in **code** folder into the **src** folder of your new project
 3. Check that the project that you want to upload on the board is in bold, otherwise:
@@ -183,7 +183,7 @@ You are going to receive these three different types of feedback based on the me
 
 ## Additional material
 
-For more information about the board consult the materials in the folder **docs** in particular [dsPIC_reference_manual.pdf](https://github.com/cesca95/AutonomousCatamaran/blob/master/docs/dsPIC_reference_manual.pdf) and [dspic30f4011.pdf](https://github.com/cesca95/AutonomousCatamaran/blob/master/docs/dspic30f4011.pdf)
+For more information about the board consult the materials in the folder **docs** in particular [dsPIC_reference_manual.pdf](https://github.com/francesca-cantoni/AutonomousCatamaran/blob/master/docs/dsPIC_reference_manual.pdf) and [dspic30f4011.pdf](https://github.com/francesca-cantoni/AutonomousCatamaran/blob/master/docs/dspic30f4011.pdf)
 
 ## Authors
 
